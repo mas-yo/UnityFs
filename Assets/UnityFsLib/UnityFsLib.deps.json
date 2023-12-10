@@ -9,7 +9,8 @@
     ".NETStandard,Version=v2.1/": {
       "UnityFsLib/1.0.0": {
         "dependencies": {
-          "FSharp.Core": "6.0.7"
+          "FSharp.Core": "6.0.7",
+          "UnityEngine": "0.0.0.0"
         },
         "runtime": {
           "UnityFsLib.dll": {}
@@ -63,6 +64,14 @@
             "locale": "zh-Hant"
           }
         }
+      },
+      "UnityEngine/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
       }
     }
   },
@@ -78,6 +87,11 @@
       "sha512": "sha512-e6wGrq5smV3Yk2fBE/Y0nBG5oFyF59k5Je0a0QDydUpg6liyaafGjD3xvutciKepCP2knspZ/sWViC/F1OyyQQ==",
       "path": "fsharp.core/6.0.7",
       "hashPath": "fsharp.core.6.0.7.nupkg.sha512"
+    },
+    "UnityEngine/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
     }
   }
 }

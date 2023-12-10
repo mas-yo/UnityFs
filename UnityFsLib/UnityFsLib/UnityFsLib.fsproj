@@ -9,4 +9,18 @@
         <Compile Include="Library.fs"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <Reference Include="UnityEngine">
+        <HintPath>..\..\..\..\..\..\Program Files\Unity\Hub\Editor\2022.3.15f1\Editor\Data\Managed\UnityEngine.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+    
+<!--    <Target Name="PostPublish" AfterTargets="AfterPublish">-->
+<!--        <Exec Command="copy $(SolutionDir)\UnityFsLib\bin\Debug\netstandard2.1\UnityFsLib.dll $(SolutionDir)\..\Assets\UnityFsLib\UnityFsLib.dll"/>-->
+<!--    </Target>-->
+    
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+        <Exec Command="copy $(SolutionDir)\UnityFsLib\bin\Debug\netstandard2.1\UnityFsLib.* $(SolutionDir)\..\Assets\UnityFsLib\"/>
+    </Target>
+
 </Project>
