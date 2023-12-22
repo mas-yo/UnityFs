@@ -19,7 +19,12 @@ public class NewBehaviourScript : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        _currentRadian = Move.updateRadian(Time.deltaTime, _currentRadian);
-        _transform.position = Move.move(_transform.position, _currentRadian);
+        // _currentRadian = Move.updateRadian(Time.deltaTime, _currentRadian);
+        // _transform.position = Move.move(_transform.position, _currentRadian);
+        var a = Move.move(Time.deltaTime, _currentRadian);
+        _transform.position = new Vector3(a.x, a.y, _transform.position.z);
+        _currentRadian = a.radian;
+        Physics.Raycast()
+
     }
 }
