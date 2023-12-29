@@ -6,11 +6,6 @@ open System.Numerics
 
 
 module ECS =
-    // [<Struct>]
-    // type Velocity = { X: float; Y: float; Z: float}
-    //
-    // [<Struct>]
-    // type Position = { X: float; Y: float; Z: float}
     
     [<Struct>]
     type Component<'a> = {
@@ -35,8 +30,8 @@ module ECS =
         Grid: Component<Grid> list
     }
     
-    let findByEntityId (components: Component<_> list) entityId =
-        components |> List.find (fun x -> x.EntityId = entityId)
+    let findByEntityId (components: Component<_> seq) entityId =
+        components |> Seq.find (fun x -> x.EntityId = entityId)
         
 
     
@@ -51,7 +46,7 @@ module ECS =
     let getGridIndex (target: Vector2) gridSize =
         (int (target.X / gridSize), int (target.Y / gridSize))
         
-    let calcGrid (positions: Component<Vector2> list) gridSize =
+    let calcGrid (positions: Component<Vector2> seq) gridSize =
         
         let nums = positions |> Seq.groupBy (fun p -> getGridIndex p.Value gridSize)
                               |> Seq.map (fun (k, values) -> k, Seq.length values)
@@ -66,39 +61,38 @@ module ECS =
         source |> Seq.map(fun s -> (s.EntityId, s.Value))
 
     let enumerateEntities1
-        (source: Component<'T> list)
-        (reference: Component<'U> list) =
-        source |> List.map(fun s -> (s.EntityId, s.Value, (findByEntityId reference s.EntityId).Value))
+        (source: Component<'T> seq)
+        (reference: Component<'U> seq) =
+        source |> Seq.map(fun s -> (s.EntityId, s.Value, (findByEntityId reference s.EntityId).Value))
 
     let enumerateEntities2
-        (source: Component<'T> list)
-        (reference1: Component<'U> list)
-        (reference2: Component<'V> list) =
-        source |> List.map(fun s -> (s.EntityId, s.Value, (findByEntityId reference1 s.EntityId).Value, (findByEntityId reference2 s.EntityId).Value))
+        (source: Component<'T> seq)
+        (reference1: Component<'U> seq)
+        (reference2: Component<'V> seq) =
+        source |> Seq.map(fun s -> (s.EntityId, s.Value, (findByEntityId reference1 s.EntityId).Value, (findByEntityId reference2 s.EntityId).Value))
         
     let update world: World =
         
         let nextDirection = enumerateEntities2 world.Directions world.Positions world.TargetPositions
-                            |> List.map (fun (entityId, _,c,t) -> {EntityId = entityId; Value = calcDirection c t})
+                            |> Seq.map (fun (entityId, _,c,t) -> {EntityId = entityId; Value = calcDirection c t})
         
         let nextVelocity = enumerateEntities2 world.Velocities nextDirection world.Speeds
-                            |> List.map (fun (entityId,_,d,s) -> {EntityId = entityId; Value = calcVelocity d s})
+                            |> Seq.map (fun (entityId,_,d,s) -> {EntityId = entityId; Value = calcVelocity d s})
                             
         let nextPosition = enumerateEntities1 world.Positions nextVelocity
-                           |> List.map (fun (entityId,p,v) -> {EntityId = entityId; Value = p + v })
+                           |> Seq.map (fun (entityId,p,v) -> {EntityId = entityId; Value = p + v })
                            
         let nextGrid = enumerateEntities world.Grid
                            |> Seq.map (fun (entityId, g) -> {EntityId = entityId; Value = calcGrid nextPosition 10f })
-                           |> List.ofSeq
                             
         {
             TargetPositions = []
             MouseClicked = world.MouseClicked 
-            Directions = nextDirection
+            Directions = nextDirection |> List.ofSeq
             Speeds = world.Speeds
-            Velocities = nextVelocity
-            Positions = nextPosition
-            Grid = nextGrid
+            Velocities = nextVelocity |> List.ofSeq
+            Positions = nextPosition |> List.ofSeq
+            Grid = nextGrid |> List.ofSeq
         }
         
         
