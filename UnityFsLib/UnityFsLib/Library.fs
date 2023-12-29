@@ -30,10 +30,34 @@ module ECS =
         Grid: Component<Grid> list
     }
     
+    let addTuple a b =
+        let a1, a2 = a
+        let b1, b2 = b
+        a1 + b1, a2 + b2
+   
     let findByEntityId (components: Component<_> seq) entityId =
         components |> Seq.find (fun x -> x.EntityId = entityId)
         
+    let getGridIndex (target: Vector2) gridSize =
+        (int (target.X / gridSize), int (target.Y / gridSize))
 
+    let calcTarget position (grid: Grid) =
+        let gxy = getGridIndex position grid.GridSize
+        let gxys = [|
+            addTuple gxy (-1, 0);
+            addTuple gxy ( 1, 0);
+            addTuple gxy ( 0,-1);
+            addTuple gxy ( 0, 1);
+            addTuple gxy (-1,-1);
+            addTuple gxy (-1, 1);
+            addTuple gxy ( 1,-1);
+            addTuple gxy ( 1, 1);
+        |]
+        
+        let (minx, miny), _ = gxys |> Seq.map (fun g -> g, grid.EntityNums.GetValueOrDefault(g, 0))
+                                   |> Seq.minBy (fun (_, c) -> c)
+    
+        Vector2(float32 minx * grid.GridSize, float32 miny * grid.GridSize)
     
     let calcDirection (current:Vector2) (target:Vector2) =
         let diff = target - current
@@ -43,8 +67,6 @@ module ECS =
         Vector2(float32 (Math.Cos(direction) * speed), float32 (Math.Sin(direction) * speed))
         
     
-    let getGridIndex (target: Vector2) gridSize =
-        (int (target.X / gridSize), int (target.Y / gridSize))
         
     let calcGrid (positions: Component<Vector2> seq) gridSize =
         
@@ -73,7 +95,10 @@ module ECS =
         
     let update world: World =
         
-        let nextDirection = enumerateEntities2 world.Directions world.Positions world.TargetPositions
+        let targetPosition = enumerateEntities world.Positions
+                            |> Seq.map (fun (entityId, p) -> {EntityId = entityId; Value = calcTarget p world.Grid.Head.Value})
+        
+        let nextDirection = enumerateEntities2 world.Directions targetPosition world.TargetPositions
                             |> Seq.map (fun (entityId, _,c,t) -> {EntityId = entityId; Value = calcDirection c t})
         
         let nextVelocity = enumerateEntities2 world.Velocities nextDirection world.Speeds
@@ -86,7 +111,7 @@ module ECS =
                            |> Seq.map (fun (entityId, g) -> {EntityId = entityId; Value = calcGrid nextPosition 10f })
                             
         {
-            TargetPositions = []
+            TargetPositions = targetPosition |> List.ofSeq
             MouseClicked = world.MouseClicked 
             Directions = nextDirection |> List.ofSeq
             Speeds = world.Speeds
