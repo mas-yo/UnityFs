@@ -2,4 +2,4 @@
 
 Console.WriteLine("Hello, World!");
 
-UnityFsLib.Say.hello("abc");
+// UnityFsLib.Say.hello("abc");

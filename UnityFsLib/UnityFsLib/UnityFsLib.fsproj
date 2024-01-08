@@ -6,7 +6,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Library.fs"/>
+        <Compile Include="EntityComponent.fs" />
+        <Compile Include="GameLogic.fs" />
     </ItemGroup>
 
     <ItemGroup>
