@@ -3,6 +3,7 @@
 open System
 open System.Collections.Generic
 open System.Numerics
+open UnityEngine.UIElements
 open UnityEngine.UIElements.Experimental
 open UnityFsLib.EntityComponent
 
@@ -12,33 +13,53 @@ module GameLogic =
     type Position = Position of Vector2
     type Velocity = Velocity of Vector2
     type Radian = Radian of float32
+    type Grid = Grid of Map<GridPosition, int>
 
     [<Struct>]
     type World =
         { GridSize: float32
           MouseClicked: Component<Vector2 option> list
-          TargetPositions: Component<Position> list
+          TargetPositions: Component<Position option> list
           Directions: Component<Radian> list
           Speeds: Component<float32> list
           Velocities: Component<Velocity> list
           CurrentPositions: Component<Position> list
-          Grids: Component<Map<GridPosition, int>> list }
+          Grids: Component<Grid> list }
 
     let NewWorld =
         { GridSize = 10f
           MouseClicked = List.empty
-          TargetPositions = List.empty
-          Directions = List.empty
-          Speeds = List.empty
-          Velocities = List.empty
-          CurrentPositions = List.empty
-          Grids = List.empty }
+          TargetPositions = [
+              { EntityId = EntityId(1); Value = None }
+              { EntityId = EntityId(2); Value = None }
+          ]
+          Directions =  [
+              { EntityId = EntityId(1); Value = Radian(0f) }
+              { EntityId = EntityId(2); Value = Radian(0f) }
+          ]
+          Speeds = [
+              { EntityId = EntityId(1); Value = 1f }
+              { EntityId = EntityId(2); Value = 1f }
+          ]
+          Velocities = [
+              { EntityId = EntityId(1); Value = Velocity(Vector2(0f, 0f)) }
+              { EntityId = EntityId(2); Value = Velocity(Vector2(0f, 0f)) }
+          ]
+          CurrentPositions = [
+              { EntityId = EntityId(1); Value = Position(Vector2(0f, 0f)) }
+              { EntityId = EntityId(2); Value = Position(Vector2(0f, 0f)) }
+          ]
+          Grids = [
+              { EntityId = EntityId(100); Value = Grid(Map.empty<_,_>) }
+          ] }
 
     let addTuple a b =
         let a1, a2 = a
         let b1, b2 = b
         a1 + b1, a2 + b2
 
+    let lengthSquared (Position p1) (Position p2) =
+        (p1 - p2).LengthSquared()
 
     let toGridPosition (Position position) gridSize =
         let gx = position.X / gridSize
@@ -50,7 +71,7 @@ module GameLogic =
         let y = gridSize * float32 gy
         Vector2(x, y) |> Position
 
-    let calcTarget position (grid: Map<_, _>) gridSize =
+    let calcTarget position (Grid grid) gridSize =
         let (GridPosition(gx, gy)) = toGridPosition position gridSize
 
         let dxyz =
@@ -65,9 +86,12 @@ module GameLogic =
 
         fromGridPosition targetGridPos gridSize
 
-    let calcDirection (Position current) (Position target) =
-        let diff = target - current
-        atan2 diff.Y diff.X |> Radian
+    let calcDirection (direction:Radian) (Position current) (target: Position option) =
+        match target with
+        | None -> direction
+        | Some(Position(t)) -> 
+            let diff = t - current
+            atan2 diff.Y diff.X |> Radian
 
     let calcVelocity (Radian direction) speed =
         let vx = speed * cos direction
@@ -85,21 +109,30 @@ module GameLogic =
 
 
 
-    let update world : World =
+    let Update world : World =
 
+        let gridSelector (_: Component<_>) (comps: Component<Grid> seq) =
+            comps |> Seq.head
 
         let targetPosition =
-            world.CurrentPositions
-            |> Seq.map (fun p ->
-                { EntityId = p.EntityId
-                  Value = calcTarget p.Value world.Grids.Head.Value world.GridSize })
+            world.TargetPositions
+            |> withEntitySelector3 gridSelector world.Grids findByEntityId world.CurrentPositions
+            |> Seq.map (fun c3 ->
+                let moving = match c3.Value1 with
+                | Some(p) when 0.1f < lengthSquared p c3.Value2 -> true
+                | _ -> false
+                
+                let target = if moving then None else Some(calcTarget c3.Value2 c3.Value3 world.GridSize)
+                
+                { EntityId = c3.EntityId
+                  Value = target })
 
         let nextDirection =
             world.Directions
             |> withSameEntity3 targetPosition world.CurrentPositions
             |> Seq.map (fun dct ->
                 { EntityId = dct.EntityId
-                  Value = calcDirection dct.Value2 dct.Value3 })
+                  Value = calcDirection dct.Value1 dct.Value2 dct.Value3 })
 
         let nextVelocity =
             world.Velocities
@@ -120,9 +153,10 @@ module GameLogic =
 
         let nextGridInfo =
             nextPosition
-            |> withEntitySelector2 (fun _ comps -> comps |> Seq.head) world.Grids
+            |> withEntitySelector2 gridSelector world.Grids
             |> Seq.map (fun c2 -> c2.Value1)
             |> calcGrid world.GridSize
+            |> Grid
 
         let nextGrid =
             [ { EntityId = EntityId(0)
