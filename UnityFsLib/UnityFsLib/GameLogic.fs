@@ -13,20 +13,13 @@ module GameLogic =
     type Velocity = Velocity of Vector2
     type Radian = Radian of float32
 
-
-    // [<Struct>]
-    // type Grid = {
-    //     EntityNums: Map<GridPosition, int>
-    //     GridSize: float32
-    // }
-
     [<Struct>]
     type World =
         { GridSize: float32
           MouseClicked: Component<Vector2 option> list
           TargetPositions: Component<Position> list
           Directions: Component<Radian> list
-          Speeds: Component<float> list
+          Speeds: Component<float32> list
           Velocities: Component<Velocity> list
           CurrentPositions: Component<Position> list
           Grids: Component<Map<GridPosition, int>> list }
@@ -74,12 +67,12 @@ module GameLogic =
 
     let calcDirection (Position current) (Position target) =
         let diff = target - current
-        Math.Atan2(float diff.Y, float diff.X) |> float32 |> Radian
+        atan2 diff.Y diff.X |> Radian
 
     let calcVelocity (Radian direction) speed =
-        let vx = Math.Cos(float direction) * speed
-        let vy = Math.Sin(float direction) * speed
-        Vector2(float32 vx, float32 vy) |> Velocity
+        let vx = speed * cos direction
+        let vy = speed * sin direction
+        Vector2(vx, vy) |> Velocity
 
 
 
@@ -135,12 +128,6 @@ module GameLogic =
             [ { EntityId = EntityId(0)
                 Value = nextGridInfo } ]
 
-
-
-
-        // let nextGrid = enumerateEntities world.Grid
-        //                    |> Seq.map (fun (entityId, g) -> {EntityId = entityId; Value = calcGrid nextPosition 10f })
-
         { GridSize = world.GridSize
           TargetPositions = targetPosition |> List.ofSeq
           MouseClicked = world.MouseClicked
@@ -151,39 +138,3 @@ module GameLogic =
           Grids = nextGrid }
 
 
-module Duck =
-    let inline X v = (^a: (member X: _) v)
-    let inline Y v = (^a: (member Y: _) v)
-
-    let inline Z v = (^a: (member Z: _) v)
-
-module Move =
-    let updateRadian deltaTime currentRadian = currentRadian + deltaTime
-
-    // let getX_ (radian: float32, radius: float32) =
-    //     float32 (float radius * Math.Sin(float radian))
-
-    let getX radian radius = radius * Math.Sin radian
-
-    let getY radian radius = radius * Math.Cos radian
-
-    // let getY (radian: float32, radius: float32) =
-    //     float32 (float radius * Math.Cos(float radian))
-
-    // let rayCast position direction maxLength =
-    //     Physics.Raycast(Vector3( Duck.X position, Duck.Y position, Duck.Z position), Vector3(1f,2f,3f))
-
-    type MoveReturnValue =
-        struct
-            val radian: float32
-            val x: float32
-            val y: float32
-            new(r, x, y) = { radian = r; x = x; y = y }
-        end
-
-// let move (deltaTime: float32, currentRadian: float32) =
-//     let r = updateRadian deltaTime currentRadian
-//     Physics.Raycast
-//     let x = getX (float r) 5.0
-//     let y = getY (float r) 5.0
-//     MoveReturnValue(r, float32 x, float32 y)
