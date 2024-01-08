@@ -17,6 +17,7 @@ public class NewBehaviourScript : MonoBehaviour
         _world = GameLogic.NewWorld;
         _gameObjects.Add(EntityComponent.EntityId.NewEntityId(1), GameObject.Find("1"));
         _gameObjects.Add(EntityComponent.EntityId.NewEntityId(2), GameObject.Find("2"));
+        _gameObjects.Add(EntityComponent.EntityId.NewEntityId(3), GameObject.Find("3"));
     }
 
     // Update is called once per frame

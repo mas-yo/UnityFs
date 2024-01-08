@@ -27,27 +27,32 @@ module GameLogic =
           Grids: Component<Grid> list }
 
     let NewWorld =
-        { GridSize = 10f
+        { GridSize = 1f
           MouseClicked = List.empty
           TargetPositions = [
               { EntityId = EntityId(1); Value = None }
               { EntityId = EntityId(2); Value = None }
+              { EntityId = EntityId(3); Value = None }
           ]
           Directions =  [
               { EntityId = EntityId(1); Value = Radian(0f) }
               { EntityId = EntityId(2); Value = Radian(0f) }
+              { EntityId = EntityId(3); Value = Radian(0f) }
           ]
           Speeds = [
-              { EntityId = EntityId(1); Value = 1f }
-              { EntityId = EntityId(2); Value = 1f }
+              { EntityId = EntityId(1); Value = 0.01f }
+              { EntityId = EntityId(2); Value = 0.01f }
+              { EntityId = EntityId(3); Value = 0.01f }
           ]
           Velocities = [
               { EntityId = EntityId(1); Value = Velocity(Vector2(0f, 0f)) }
               { EntityId = EntityId(2); Value = Velocity(Vector2(0f, 0f)) }
+              { EntityId = EntityId(3); Value = Velocity(Vector2(0f, 0f)) }
           ]
           CurrentPositions = [
               { EntityId = EntityId(1); Value = Position(Vector2(0f, 0f)) }
-              { EntityId = EntityId(2); Value = Position(Vector2(0f, 0f)) }
+              { EntityId = EntityId(2); Value = Position(Vector2(0.1f, 0f)) }
+              { EntityId = EntityId(3); Value = Position(Vector2(1f, 0f)) }
           ]
           Grids = [
               { EntityId = EntityId(100); Value = Grid(Map.empty<_,_>) }
@@ -126,6 +131,7 @@ module GameLogic =
                 
                 { EntityId = c3.EntityId
                   Value = target })
+            |> List.ofSeq
 
         let nextDirection =
             world.Directions
@@ -133,6 +139,7 @@ module GameLogic =
             |> Seq.map (fun dct ->
                 { EntityId = dct.EntityId
                   Value = calcDirection dct.Value1 dct.Value2 dct.Value3 })
+            |> List.ofSeq
 
         let nextVelocity =
             world.Velocities
@@ -140,6 +147,7 @@ module GameLogic =
             |> Seq.map (fun c3 ->
                 { EntityId = c3.EntityId
                   Value = calcVelocity c3.Value2 c3.Value3 })
+            |> List.ofSeq
 
         let nextPosition =
             world.CurrentPositions
@@ -150,11 +158,13 @@ module GameLogic =
 
                 { EntityId = c2.EntityId
                   Value = Position(pos + vel) })
+            |> List.ofSeq
 
         let nextGridInfo =
             nextPosition
-            |> withEntitySelector2 gridSelector world.Grids
-            |> Seq.map (fun c2 -> c2.Value1)
+            |> withEntitySelector3 gridSelector world.Grids findByEntityId targetPosition 
+            |> Seq.filter (fun c3 -> c3.Value2.IsNone)
+            |> Seq.map (fun c3 -> c3.Value1)
             |> calcGrid world.GridSize
             |> Grid
 
@@ -163,12 +173,12 @@ module GameLogic =
                 Value = nextGridInfo } ]
 
         { GridSize = world.GridSize
-          TargetPositions = targetPosition |> List.ofSeq
+          TargetPositions = targetPosition
           MouseClicked = world.MouseClicked
-          Directions = nextDirection |> List.ofSeq
+          Directions = nextDirection
           Speeds = world.Speeds
-          Velocities = nextVelocity |> List.ofSeq
-          CurrentPositions = nextPosition |> List.ofSeq
+          Velocities = nextVelocity
+          CurrentPositions = nextPosition
           Grids = nextGrid }
 
 
