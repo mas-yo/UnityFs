@@ -9,8 +9,10 @@ using Vector2 = System.Numerics.Vector2;
 
 public class NewBehaviourScript : MonoBehaviour
 {
+    
     [SerializeField]
     public GameObject _boxPrefab;
+
     private int _nextEntityId = 4;
     private GameLogic.World _world;
     private Dictionary<EntityComponent.EntityId, GameObject> _gameObjects = new Dictionary<EntityComponent.EntityId, GameObject>();
@@ -34,7 +36,12 @@ public class NewBehaviourScript : MonoBehaviour
             if (plane.Raycast(ray, out float enter))
             {
                 var p = ray.GetPoint(enter);
-                _world = GameLogic.AddEntity(EntityComponent.EntityId.NewEntityId(_nextEntityId), GameLogic.Position.NewPosition(new Vector2(p.x, p.z)), _world);
+                _world = GameLogic.AddEntity(
+                    EntityComponent.EntityId.NewEntityId(_nextEntityId), 
+                    GameLogic.Position.NewPosition(new Vector2(p.x, p.z)), 
+                    Random.Range(0.001f, 0.02f),
+                    Random.Range(10, 300),
+                    _world);
 
                 var newObject = Instantiate(_boxPrefab, p, Quaternion.identity);
                 _gameObjects.Add(EntityComponent.EntityId.NewEntityId(_nextEntityId), newObject);

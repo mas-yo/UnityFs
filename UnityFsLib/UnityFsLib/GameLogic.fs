@@ -16,11 +16,13 @@ module GameLogic =
     type Grid = Grid of Map<GridPosition, int>
     
     type WaitingTime = WaitingTime of int
+    type Quickness = Quickness of int
     
 
     [<Struct>]
     type World =
         { GridSize: float32
+          Quickness: Component<Quickness> list
           WaitingTimes: Component<WaitingTime> list
           TargetPositions: Component<GridPosition> list
           Directions: Component<Radian> list
@@ -28,41 +30,30 @@ module GameLogic =
           Velocities: Component<Velocity> list
           CurrentPositions: Component<Position> list
           Grids: Component<Grid> list }
+        
+        
+    let NewGrids =
+        [ -10 .. 10 ]
+        |> List.collect (fun x -> [ -10 .. 10 ] |> List.map (fun y -> x, y))
+        |> List.map (fun x -> (GridPosition(x), 0))
+        |> Map.ofList
+        
+        // ||> Seq.allPairs
+        // |> Seq.map (fun x -> (GridPosition(x), 0))
+        // |> Array.ofSeq
+        // |> Map.ofArray
 
     let NewWorld =
         { GridSize = 1f
-          WaitingTimes = [
-              { EntityId = EntityId(1); Value = WaitingTime(120) }
-              { EntityId = EntityId(2); Value = WaitingTime(80) }
-              { EntityId = EntityId(3); Value = WaitingTime(20) }
-          ] 
-          TargetPositions = [
-              { EntityId = EntityId(1); Value = GridPosition(0, 0) }
-              { EntityId = EntityId(2); Value = GridPosition(0, 0) }
-              { EntityId = EntityId(3); Value = GridPosition(0, 0) }
-          ]
-          Directions =  [
-              { EntityId = EntityId(1); Value = Radian(0f) }
-              { EntityId = EntityId(2); Value = Radian(0f) }
-              { EntityId = EntityId(3); Value = Radian(0f) }
-          ]
-          Speeds = [
-              { EntityId = EntityId(1); Value = 0.01f }
-              { EntityId = EntityId(2); Value = 0.01f }
-              { EntityId = EntityId(3); Value = 0.01f }
-          ]
-          Velocities = [
-              { EntityId = EntityId(1); Value = Velocity(Vector2(0f, 0f)) }
-              { EntityId = EntityId(2); Value = Velocity(Vector2(0f, 0f)) }
-              { EntityId = EntityId(3); Value = Velocity(Vector2(0f, 0f)) }
-          ]
-          CurrentPositions = [
-              { EntityId = EntityId(1); Value = Position(Vector2(0f, 0f)) }
-              { EntityId = EntityId(2); Value = Position(Vector2(0.1f, 0f)) }
-              { EntityId = EntityId(3); Value = Position(Vector2(0f, 1f)) }
-          ]
+          Quickness = List.Empty
+          WaitingTimes = List.Empty 
+          TargetPositions = List.Empty
+          Directions = List.Empty
+          Speeds = List.Empty
+          Velocities = List.Empty
+          CurrentPositions = List.Empty
           Grids = [
-              { EntityId = EntityId(0); Value = Grid(Map.empty<_,_>) }
+              { EntityId = EntityId(0); Value = Grid(NewGrids) }
           ] }
         
     let toGridPosition (Position position) gridSize =
@@ -74,13 +65,14 @@ module GameLogic =
         let x = gridSize * float32 gx
         let y = gridSize * float32 gy
         Vector2(x, y) |> Position        
-    let AddEntity entityId position world =
+    let AddEntity entityId position speed quickness world =
         {
             GridSize = world.GridSize
-            WaitingTimes = { EntityId = entityId; Value = WaitingTime(60) } :: world.WaitingTimes
+            Quickness = { EntityId = entityId; Value = Quickness(quickness) } :: world.Quickness 
+            WaitingTimes = { EntityId = entityId; Value = WaitingTime(quickness) } :: world.WaitingTimes
             TargetPositions = { EntityId = entityId; Value = (toGridPosition position world.GridSize) } :: world.TargetPositions
             Directions = { EntityId = entityId; Value = Radian(0f) } :: world.Directions
-            Speeds = { EntityId = entityId; Value = 0.01f } :: world.Speeds
+            Speeds = { EntityId = entityId; Value = speed } :: world.Speeds
             Velocities = { EntityId = entityId; Value = Velocity(Vector2(0f, 0f)) } :: world.Velocities
             CurrentPositions = { EntityId = entityId; Value = position } :: world.CurrentPositions
             Grids = world.Grids
@@ -97,46 +89,63 @@ module GameLogic =
 
 
     
-    let calcWaitingTime gridSize (WaitingTime waitingTime) currentPos targetGridPos =
-        let isInSameGrid gridSize pos gridPos  =
-            gridPos = toGridPosition pos gridSize
+    let calcWaitingTime (WaitingTime waitingTime) (Quickness quickness) =
+        // let isInSameGrid gridSize pos gridPos  =
+            // gridPos = toGridPosition pos gridSize
 
         match waitingTime with
-        | w when w = 0 -> 60
-        // | w when w < 60 -> max 0 (w - 1)
+        | w when w = 0 -> quickness
         | w -> max 0 (w - 1)
             
-        // if waitingTime > 0 && isInSameGrid gridSize currentPos targetGridPos 
-        // then
-        //     max 0 (waitingTime - 1)
-        // else
-        //     0
         |> WaitingTime
         
     let calcTarget gridSize targetGridPos position (WaitingTime waitingTime) (Grid grid)  =
         
-        let searchGrid gridSize pos  =
-            let (GridPosition(gx, gy)) = toGridPosition pos gridSize
-
-            let dxyz =
-                [| (-1, 0); (1, 0); (0, -1); (0, 1); (-1, -1); (-1, 1); (1, -1); (1, 1) |]
-
-            let targetGridPos, _ =
-                dxyz
-                    |> Seq.map (fun (dx, dy) ->
-                        let gridPos = GridPosition(gx + dx, gy + dy)
-                        gridPos, grid.GetValueOrDefault(gridPos, 0))
-                    |> Seq.minBy (fun (_, c) -> c)                    
-            targetGridPos
+        // let searchGrid gridSize pos grid =
             
-        let currentGrid = toGridPosition position gridSize
-        let nearCount = grid.GetValueOrDefault(currentGrid, 0)
+            // let (GridPosition(gx, gy)) = toGridPosition pos gridSize
+
+            // let dxyz =
+            //     [| (-1, 0); (1, 0); (0, -1); (0, 1); (-1, -1); (-1, 1); (1, -1); (1, 1) |]
+
+            // let targetGridPos, _ =
+            //     dxyz
+            //         |> Seq.map (fun (dx, dy) ->
+            //             let gridPos = GridPosition(gx + dx, gy + dy)
+            //             gridPos, grid.GetValueOrDefault(gridPos, 0))
+            //         |> Seq.minBy (fun (_, c) -> c)                    
+            // targetGridPos
+
+        let selfGridPosition =
+            toGridPosition position gridSize
             
-        if nearCount > 1 && waitingTime = 0
+        let inSameGrid =
+            targetGridPos = selfGridPosition
+        
+        let vacants =
+            grid
+            |> Seq.filter (fun x -> x.Value = 0 )
+            |> Array.ofSeq
+        
+        if inSameGrid && grid.GetValueOrDefault(selfGridPosition, 0) > 1 && (Seq.length vacants) > 0
         then
-            searchGrid gridSize position
+            let t =
+                vacants
+                |> Seq.minBy (fun x ->
+                    let gp = fromGridPosition x.Key gridSize
+                    lengthSquared gp position)
+            t.Key
         else
             targetGridPos
+                    
+        // let currentGrid = toGridPosition position gridSize
+        // let nearCount = grid.GetValueOrDefault(currentGrid, 0)
+        //     
+        // if nearCount > 1 && waitingTime = 0
+        // then
+        //     searchGrid gridSize position
+        // else
+        //     targetGridPos
                 
         
         
@@ -151,21 +160,30 @@ module GameLogic =
         |> Velocity
 
     let calcPosition gridSize (Position current) (Velocity velocity) (targetGridPos: GridPosition) =
+        let tp = toGridPosition (Position current) gridSize
+        
         let (Position p) = fromGridPosition targetGridPos gridSize
         let l1 = (current - p).LengthSquared()
         let l2 = (current + velocity - p).LengthSquared()
         
-        if l1 > l2
-        then current + velocity
-        else current
+        if tp = targetGridPos
+        then current
+        else
+            if l1 > l2
+            then current + velocity
+            else current
         |> Position
 
-    let calcGrid gridSize (positions: Position seq) =
+    let calcGrid gridSize (Grid grid) (positions: Position seq) =
 
-        positions
-        |> Seq.groupBy (fun p -> toGridPosition p gridSize)
-        |> Seq.map (fun (k, values) -> k, Seq.length values)
-        |> Map.ofSeq
+        let countMap =
+            positions
+            |> Seq.groupBy (fun p -> toGridPosition p gridSize)
+            |> Seq.map (fun (k, values) -> k, Seq.length values)
+            |> Map.ofSeq
+        
+        grid
+        |> Map.map (fun pos c -> countMap.GetValueOrDefault(pos, 0))
         |> Grid
 
     let Update (world: World) =
@@ -175,7 +193,7 @@ module GameLogic =
             
         let nextWaitingTimes =
             world.WaitingTimes
-            |> nextValueWithSameEntity3 (calcWaitingTime world.GridSize) world.CurrentPositions world.TargetPositions 
+            |> nextValueWithSameEntity2 calcWaitingTime world.Quickness 
             |> List.ofSeq
 
         let nextTargets =
@@ -207,9 +225,10 @@ module GameLogic =
             |> List.ofSeq
 
         let nextGridInfo =
-            nextPosition
-            |> Seq.map (fun p -> p.Value)
-            |> (calcGrid world.GridSize)
+            calcGrid world.GridSize world.Grids.Head.Value (nextPosition |> Seq.map (fun p -> p.Value))
+            // nextPosition
+            // |> Seq.map (fun p -> p.Value)
+            // |> (calcGrid world.GridSize)
             
             // |> withEntitySelector2 (gridSelector world.Grids)
             // |> Seq.map (fun (entityId, value1, value2) -> calcGrid world.GridSize value1 value2)
@@ -220,6 +239,7 @@ module GameLogic =
                 Value = nextGridInfo } ]
 
         { GridSize = world.GridSize
+          Quickness = world.Quickness 
           WaitingTimes = nextWaitingTimes 
           TargetPositions = nextTargets
           Directions = nextDirection
