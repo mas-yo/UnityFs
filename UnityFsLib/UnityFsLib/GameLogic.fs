@@ -95,7 +95,7 @@ module GameLogic =
             |> Seq.filter (fun x -> x.Value = 0 )
             |> Array.ofSeq
         
-        if inSameGrid && grid.GetValueOrDefault(selfGridPosition, 0) > 1 && (Seq.length vacants) > 0
+        if inSameGrid && grid.GetValueOrDefault(selfGridPosition, 0) > 1 && (Array.length vacants) > 0
         then
             let t =
                 vacants
